@@ -16,13 +16,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  final items = <Widget>[
-    Icon(Icons.home, color: AppColors.backgroundComponent),
-    Icon(Icons.sell, color: AppColors.backgroundComponent),
-    Icon(Icons.widgets, color: AppColors.backgroundComponent),
-    Icon(Icons.list, color: AppColors.backgroundComponent),
-  ];
-
   final List<Widget> _pages = [
     const Center(child: Text("Vista Inicio")),
     const SalesScreen(),
@@ -31,6 +24,33 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
   @override
   Widget build(BuildContext context) {
+    final items = <Widget>[
+      Icon(
+        Icons.home,
+        color: _currentIndex == 0
+            ? AppColors.primary
+            : AppColors.backgroundComponent,
+      ),
+      Icon(
+        Icons.sell,
+        color: _currentIndex == 1
+            ? AppColors.primary
+            : AppColors.backgroundComponent,
+      ),
+      Icon(
+        Icons.widgets,
+        color: _currentIndex == 2
+            ? AppColors.primary
+            : AppColors.backgroundComponent,
+      ),
+      Icon(
+        Icons.list,
+        color: _currentIndex == 3
+            ? AppColors.primary
+            : AppColors.backgroundComponent,
+      ),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.secondary,
