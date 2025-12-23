@@ -259,7 +259,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         const SizedBox(height: 16),
 
                         Text(
-                          'Presiona el botón + para agregar',
+                          'Presiona el botón + para agregar ofertas',
                           style: TextStyle(
                             color: Colors.grey[500],
                             fontSize: 18,
@@ -274,11 +274,11 @@ class _MenuScreenState extends State<MenuScreen> {
                     itemBuilder: (context, index) {
                       final item = offers[index];
                       return Card(
-                        elevation: 3,
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
+                        color: AppColors.backgroundComponent,
+                        margin: EdgeInsetsGeometry.all(6),
+                        // shape: RoundedRectangleBorder(
+                        //   borderRadius: BorderRadius.circular(15),
+                        // ),
                         child: ListTile(
                           contentPadding: const EdgeInsets.all(16),
                           leading: CircleAvatar(
@@ -341,12 +341,14 @@ class _MenuScreenState extends State<MenuScreen> {
         ],
       ),
       floatingActionButton: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          FloatingActionButton(
-            onPressed: _mostrarFormularioAgregarProducto,
-            backgroundColor: AppColors.accent,
-            child: const Icon(Icons.add, color: Colors.white),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
+            child: FloatingActionButton(
+              onPressed: _mostrarFormularioAgregarProducto,
+              backgroundColor: AppColors.accent,
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
           ),
         ],
       ),
