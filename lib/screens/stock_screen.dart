@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qadrastock/core/app_color.dart';
+import 'package:qadrastock/services/stock_service.dart';
 
 import '../models/entrada_stock.models.dart';
 
@@ -11,31 +12,19 @@ class StockScreen extends StatefulWidget {
 }
 
 class _StockScreenState extends State<StockScreen> {
-  List<Producto> productos = [];
+  final StockService _stockService = StockService();
+  late List<Producto> _productos;
 
-  void _agregarOActualizarProducto(String nombre, int cantidad) {
+  @override
+  void initState() {
+    super.initState();
+    _productos = _stockService.productos;
+  }
+
+  void _agregarOActualizarProducto(String nombre, int cantidad, double precio) {
     setState(() {
-      final index = productos.indexWhere(
-        (p) => p.nombre.toLowerCase() == nombre.toLowerCase(),
-      );
-      final nuevaEntrada = EntradaStock(
-        fecha: DateTime.now(),
-        cantidad: cantidad,
-      );
-
-      if (index != -1) {
-        // El producto ya existe, añadimos al historial
-        productos[index].historial.add(nuevaEntrada);
-      } else {
-        // Producto nuevo
-        productos.add(
-          Producto(
-            id: DateTime.now().toString(),
-            nombre: nombre,
-            historial: [nuevaEntrada],
-          ),
-        );
-      }
+      _stockService.agregarOActualizarProducto(nombre, cantidad, precio);
+      _productos = _stockService.productos;
     });
   }
 
@@ -50,7 +39,7 @@ class _StockScreenState extends State<StockScreen> {
           style: TextStyle(color: AppColors.primary),
         ),
       ),
-      body: productos.isEmpty
+      body: _productos.isEmpty
           ? const Center(
               child: Text(
                 "No hay productos en stock",
@@ -58,23 +47,23 @@ class _StockScreenState extends State<StockScreen> {
               ),
             )
           : ListView.builder(
-              itemCount: productos.length,
+              itemCount: _productos.length,
               itemBuilder: (context, index) {
-                final producto = productos[index];
+                final producto = _productos[index];
                 return Card(
                   color: AppColors.backgroundComponent,
-                  margin: EdgeInsetsGeometry.all(6),
+                  margin: const EdgeInsets.all(6),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: ListTile(
                     title: Text(
                       producto.nombre,
-                      style: TextStyle(color: AppColors.primary),
+                      style: const TextStyle(color: AppColors.primary),
                     ),
                     subtitle: Text(
                       "Entradas: ${producto.historial.length}",
-                      style: TextStyle(color: AppColors.primary),
+                      style: const TextStyle(color: AppColors.primary),
                     ),
                     trailing: Text(
                       "${producto.stockTotal} und.",
@@ -89,7 +78,6 @@ class _StockScreenState extends State<StockScreen> {
                 );
               },
             ),
-
       floatingActionButton: Row(
         children: [
           Padding(
@@ -110,6 +98,7 @@ class _StockScreenState extends State<StockScreen> {
   void _mostrarDialogoAgregar() {
     final nombreController = TextEditingController();
     final cantidadController = TextEditingController();
+    final precioController = TextEditingController();
 
     showDialog(
       context: context,
@@ -129,6 +118,11 @@ class _StockScreenState extends State<StockScreen> {
               decoration: const InputDecoration(labelText: "Cantidad"),
               keyboardType: TextInputType.number,
             ),
+            TextField(
+              controller: precioController,
+              decoration: const InputDecoration(labelText: "Precio"),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
           ],
         ),
         actions: [
@@ -139,10 +133,12 @@ class _StockScreenState extends State<StockScreen> {
           ElevatedButton(
             onPressed: () {
               if (nombreController.text.isNotEmpty &&
-                  cantidadController.text.isNotEmpty) {
+                  cantidadController.text.isNotEmpty &&
+                  precioController.text.isNotEmpty) {
                 _agregarOActualizarProducto(
                   nombreController.text,
                   int.parse(cantidadController.text),
+                  double.parse(precioController.text),
                 );
                 Navigator.pop(context);
               }

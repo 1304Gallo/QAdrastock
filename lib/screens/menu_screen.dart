@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:qadrastock/core/app_color.dart';
+import 'package:qadrastock/models/entrada_stock.models.dart';
+import 'package:qadrastock/models/menu_offer.models.dart';
+import 'package:qadrastock/services/stock_service.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -9,507 +12,230 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> {
-  List<Map<String, dynamic>> offers = [];
+  final StockService _stockService = StockService();
+  List<MenuOffer> _offers = [];
 
-  // Controladores para el formulario
-  final _nombreController = TextEditingController();
-  final _precioController = TextEditingController();
-  final _descripcionController = TextEditingController();
-
-  @override
-  void dispose() {
-    _nombreController.dispose();
-    _precioController.dispose();
-    _descripcionController.dispose();
-    super.dispose();
-  }
-
-  void _mostrarFormularioAgregarProducto() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          ),
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  Text(
-                    'Nuevo Producto',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Campos de texto estilizados
-                  _buildModernTextField(
-                    controller: _nombreController,
-                    label: 'Nombre del producto',
-                    icon: Icons.shopping_bag_outlined,
-                  ),
-                  const SizedBox(height: 16),
-
-                  _buildModernTextField(
-                    controller: _precioController,
-                    label: 'Precio',
-                    icon: Icons.attach_money_rounded,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  _buildModernTextField(
-                    controller: _descripcionController,
-                    label: 'Descripción',
-                    icon: Icons.description_outlined,
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Botones de acción
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            foregroundColor: Colors.grey[600],
-                          ),
-                          child: const Text(
-                            'Descartar',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            _agregarProducto();
-                            Navigator.pop(context);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.accent,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: const Text(
-                            'Guardar',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // Widget auxiliar para mantener el código limpio y moderno
-  Widget _buildModernTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    TextInputType? keyboardType,
-    int maxLines = 1,
-  }) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, size: 20),
-        filled: true,
-        fillColor: Colors.grey[100],
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
-        ),
-        floatingLabelStyle: TextStyle(
-          color: AppColors.primary,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  void _agregarProducto() {
-    final nombre = _nombreController.text.trim();
-    final precioTexto = _precioController.text.trim();
-    final descripcion = _descripcionController.text.trim();
-
-    if (nombre.isEmpty || precioTexto.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nombre y precio son obligatorios'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    final precio = double.tryParse(precioTexto) ?? 0.0;
-
+  void _addOffer(MenuOffer offer) {
     setState(() {
-      offers.add({
-        "nombre": nombre,
-        "precio": precio,
-        "descripcion": descripcion,
-      });
+      _offers.add(offer);
     });
-
-    _limpiarFormulario();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('"$nombre" agregado al menú'),
-        backgroundColor: Colors.green,
-      ),
-    );
   }
 
-  void _limpiarFormulario() {
-    _nombreController.clear();
-    _precioController.clear();
-    _descripcionController.clear();
+  void _removeOffer(int index) {
+    setState(() {
+      _offers.removeAt(index);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          // Encabezado del Menú
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(20),
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        title: const Text(
+          "Menú",
+          style: TextStyle(color: AppColors.primary),
+        ),
+      ),
+      body: _offers.isEmpty
+          ? const Center(
+              child: Text(
+                "No hay ofertas en el menú",
+                style: TextStyle(color: AppColors.primary),
               ),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  "MENÚ DISPONIBLE",
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
+            )
+          : ListView.builder(
+              itemCount: _offers.length,
+              itemBuilder: (context, index) {
+                final offer = _offers[index];
+                return Card(
+                  color: AppColors.backgroundComponent,
+                  margin: const EdgeInsets.all(8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
                   ),
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-
-          // Lista de Ofertas
-          Expanded(
-            child: offers.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.restaurant_menu,
-                          size: 64,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-
-                        Text(
-                          'Presiona el botón + para agregar ofertas',
-                          style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 18,
-                          ),
-                        ),
-                      ],
+                  child: ListTile(
+                    title: Text(
+                      offer.name,
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: offers.length,
-                    itemBuilder: (context, index) {
-                      final item = offers[index];
-                      return Card(
-                        color: AppColors.backgroundComponent,
-                        margin: EdgeInsetsGeometry.all(6),
-                        // shape: RoundedRectangleBorder(
-                        //   borderRadius: BorderRadius.circular(15),
-                        // ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
-                          leading: CircleAvatar(
-                            backgroundColor: AppColors.accent,
-                            child: Icon(
-                              Icons.restaurant,
-                              color: AppColors.primary,
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: offer.products
+                          .map(
+                            (p) => Text(
+                              "${p.quantity} x ${p.product.nombre}",
+                              style: const TextStyle(color: AppColors.primary),
                             ),
-                          ),
-                          title: Text(
-                            item['nombre'],
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                          )
+                          .toList(),
+                    ),
+                    trailing: Text(
+                      "\$${offer.precioSugerido.toStringAsFixed(2)}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    onLongPress: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text("Eliminar oferta"),
+                          content: Text(
+                              "¿Está seguro que desea eliminar la oferta ${offer.name}?"),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text("Cancelar"),
                             ),
-                          ),
-                          subtitle: Text(
-                            item['descripcion'],
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                          trailing: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  "\$${item['precio'].toStringAsFixed(2)}",
-                                  style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
+                            TextButton(
+                              onPressed: () {
+                                _removeOffer(index);
+                                Navigator.pop(context);
+                              },
+                              child: const Text(
+                                "Eliminar",
+                                style: TextStyle(color: Colors.red),
                               ),
-                              Text(
-                                'Producto ${index + 1}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[500],
-                                ),
-                              ),
-                            ],
-                          ),
-                          onLongPress: () {
-                            _mostrarOpcionesProducto(index);
-                          },
+                            ),
+                          ],
                         ),
                       );
                     },
                   ),
-          ),
-        ],
-      ),
-      floatingActionButton: Row(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
-            child: FloatingActionButton(
-              onPressed: _mostrarFormularioAgregarProducto,
-              backgroundColor: AppColors.accent,
-              child: const Icon(Icons.add, color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _mostrarOpcionesProducto(int index) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Eliminar producto'),
-              onTap: () {
-                Navigator.pop(context);
-                _eliminarProducto(index);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.edit, color: Colors.blue),
-              title: const Text('Editar producto'),
-              onTap: () {
-                Navigator.pop(context);
-                _editarProducto(index);
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _eliminarProducto(int index) {
-    final producto = offers[index];
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Eliminar Producto'),
-          content: Text('¿Estás seguro de eliminar "${producto['nombre']}"?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  offers.removeAt(index);
-                });
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('"${producto['nombre']}" eliminado'),
-                    backgroundColor: Colors.orange,
-                  ),
                 );
               },
-              child: const Text(
-                'Eliminar',
-                style: TextStyle(color: Colors.red),
-              ),
             ),
-          ],
-        );
-      },
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddOfferDialog(),
+        backgroundColor: AppColors.accent,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
     );
   }
 
-  void _editarProducto(int index) {
-    final producto = offers[index];
-
-    _nombreController.text = producto['nombre'];
-    _precioController.text = producto['precio'].toString();
-    _descripcionController.text = producto['descripcion'];
-
+  void _showAddOfferDialog() {
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Editar Producto'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: _nombreController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre del producto',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _precioController,
-                  decoration: const InputDecoration(
-                    labelText: 'Precio',
-                    border: OutlineInputBorder(),
-                    prefixText: '\$',
-                  ),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _descripcionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Descripción',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                ),
-              ],
+      builder: (context) => AddOfferDialog(
+        stockProducts: _stockService.productos,
+        onAddOffer: _addOffer,
+      ),
+    );
+  }
+}
+
+class AddOfferDialog extends StatefulWidget {
+  final List<Producto> stockProducts;
+  final Function(MenuOffer) onAddOffer;
+
+  const AddOfferDialog(
+      {super.key, required this.stockProducts, required this.onAddOffer});
+
+  @override
+  State<AddOfferDialog> createState() => _AddOfferDialogState();
+}
+
+class _AddOfferDialogState extends State<AddOfferDialog> {
+  final _nameController = TextEditingController();
+  final _quantityController = TextEditingController();
+  Producto? _selectedProduct;
+  final List<ProductOffer> _offerProducts = [];
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text("Nueva Oferta"),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: "Nombre de la oferta"),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _limpiarFormulario();
+            const SizedBox(height: 20),
+            const Text("Productos"),
+            ..._offerProducts.map(
+              (p) => ListTile(
+                title: Text(p.product.nombre),
+                trailing: Text("x${p.quantity}"),
+                onLongPress: () {
+                  setState(() {
+                    _offerProducts.remove(p);
+                  });
+                },
+              ),
+            ),
+            const Divider(),
+            DropdownButton<Producto>(
+              value: _selectedProduct,
+              hint: const Text("Seleccione un producto"),
+              items: widget.stockProducts
+                  .map(
+                    (p) => DropdownMenuItem(
+                      value: p,
+                      child: Text(p.nombre),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (p) {
+                setState(() {
+                  _selectedProduct = p;
+                });
               },
-              child: const Text('Cancelar'),
+            ),
+            TextField(
+              controller: _quantityController,
+              decoration: const InputDecoration(labelText: "Cantidad"),
+              keyboardType: TextInputType.number,
             ),
             ElevatedButton(
               onPressed: () {
-                final nombre = _nombreController.text.trim();
-                final precioTexto = _precioController.text.trim();
-                final descripcion = _descripcionController.text.trim();
-
-                if (nombre.isEmpty || precioTexto.isEmpty) {
-                  return;
+                if (_selectedProduct != null &&
+                    _quantityController.text.isNotEmpty) {
+                  setState(() {
+                    _offerProducts.add(
+                      ProductOffer(
+                        product: _selectedProduct!,
+                        quantity: int.parse(_quantityController.text),
+                      ),
+                    );
+                    _selectedProduct = null;
+                    _quantityController.clear();
+                  });
                 }
-
-                final precio = double.tryParse(precioTexto) ?? 0.0;
-
-                setState(() {
-                  offers[index] = {
-                    "nombre": nombre,
-                    "precio": precio,
-                    "descripcion": descripcion,
-                  };
-                });
-
-                Navigator.pop(context);
-                _limpiarFormulario();
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('"$nombre" actualizado'),
-                    backgroundColor: Colors.blue,
-                  ),
-                );
               },
-              child: const Text('Guardar Cambios'),
+              child: const Text("Agregar Producto"),
             ),
           ],
-        );
-      },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Cancelar"),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            if (_nameController.text.isNotEmpty && _offerProducts.isNotEmpty) {
+              final newOffer = MenuOffer(
+                name: _nameController.text,
+                products: _offerProducts,
+              );
+              widget.onAddOffer(newOffer);
+              Navigator.pop(context);
+            }
+          },
+          child: const Text("Guardar Oferta"),
+        ),
+      ],
     );
   }
 }
