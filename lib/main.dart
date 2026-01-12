@@ -4,6 +4,8 @@ import 'package:qadrastock/screens/menu_screen.dart';
 import 'package:qadrastock/screens/sales_screen.dart';
 import 'package:qadrastock/screens/stock_screen.dart';
 
+import 'core/app_theme.dart';
+
 void main() {
   runApp(const MainApp());
 }
@@ -17,6 +19,7 @@ class MainApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: HomeScreen(),
+      theme: AppTheme.lightTheme,
       routes: {
         '/home': (context) => HomeScreen(),
         '/sales': (context) => SalesScreen(),

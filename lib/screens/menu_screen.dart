@@ -13,7 +13,7 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> {
   final StockService _stockService = StockService();
-  List<MenuOffer> _offers = [];
+  final List<MenuOffer> _offers = [];
 
   void _addOffer(MenuOffer offer) {
     setState(() {
@@ -33,9 +33,15 @@ class _MenuScreenState extends State<MenuScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.background,
-        title: const Text(
-          "Menú",
-          style: TextStyle(color: AppColors.primary),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              "Menú",
+              style: TextStyle(color: AppColors.primary),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
       body: _offers.isEmpty
@@ -68,62 +74,85 @@ class _MenuScreenState extends State<MenuScreen> {
                       children: offer.products
                           .map(
                             (p) => Text(
-                              "${p.quantity} x ${p.product.nombre}",
+                              "${p.quantity}  ${p.product.nombre}",
                               style: const TextStyle(color: AppColors.primary),
                             ),
                           )
                           .toList(),
                     ),
-                    trailing: Text(
-                      "\$${offer.precioSugerido.toStringAsFixed(2)}",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    onLongPress: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text("Eliminar oferta"),
-                          content: Text(
-                              "¿Está seguro que desea eliminar la oferta ${offer.name}?"),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text("Cancelar"),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                _removeOffer(index);
-                                Navigator.pop(context);
-                              },
-                              child: const Text(
-                                "Eliminar",
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ),
-                          ],
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "\$${offer.price.toStringAsFixed(2)}",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: AppColors.primary,
+                          ),
                         ),
-                      );
-                    },
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete,
+                            color: AppColors.accent,
+                          ),
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text("Eliminar oferta"),
+                                content: const Text(
+                                  "¿Está seguro que desea eliminar esta la oferta?",
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text("Cancelar"),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      _removeOffer(index);
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text(
+                                      "Eliminar",
+                                      style: TextStyle(
+                                        color: AppColors.secondary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddOfferDialog(),
-        backgroundColor: AppColors.accent,
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: Row(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
+            child: FloatingActionButton(
+              onPressed: () => _showAddOfferSheet(),
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  void _showAddOfferDialog() {
-    showDialog(
+  void _showAddOfferSheet() {
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AddOfferDialog(
+      isScrollControlled: true, // Permite que suba con el teclado
+      backgroundColor: Colors.transparent, // Para bordes redondeados
+      builder: (context) => AddOfferSheet(
         stockProducts: _stockService.productos,
         onAddOffer: _addOffer,
       ),
@@ -131,111 +160,223 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 }
 
-class AddOfferDialog extends StatefulWidget {
+// --- NUEVO DISEÑO DEL FORMULARIO ---
+
+class AddOfferSheet extends StatefulWidget {
   final List<Producto> stockProducts;
   final Function(MenuOffer) onAddOffer;
 
-  const AddOfferDialog(
-      {super.key, required this.stockProducts, required this.onAddOffer});
+  const AddOfferSheet({
+    super.key,
+    required this.stockProducts,
+    required this.onAddOffer,
+  });
 
   @override
-  State<AddOfferDialog> createState() => _AddOfferDialogState();
+  State<AddOfferSheet> createState() => _AddOfferSheetState();
 }
 
-class _AddOfferDialogState extends State<AddOfferDialog> {
+class _AddOfferSheetState extends State<AddOfferSheet> {
   final _nameController = TextEditingController();
   final _quantityController = TextEditingController();
+  final _priceController = TextEditingController();
   Producto? _selectedProduct;
   final List<ProductOffer> _offerProducts = [];
 
   @override
+  void dispose() {
+    _nameController.dispose();
+    _quantityController.dispose();
+    _priceController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text("Nueva Oferta"),
-      content: SingleChildScrollView(
+    final ofertaTemporal = MenuOffer(
+      name: _nameController.text,
+      products: _offerProducts,
+      price: 0.0,
+    );
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      padding: EdgeInsets.only(
+        top: 20,
+        left: 20,
+        right: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: "Nombre de la oferta"),
-            ),
-            const SizedBox(height: 20),
-            const Text("Productos"),
-            ..._offerProducts.map(
-              (p) => ListTile(
-                title: Text(p.product.nombre),
-                trailing: Text("x${p.quantity}"),
-                onLongPress: () {
-                  setState(() {
-                    _offerProducts.remove(p);
-                  });
-                },
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
-            const Divider(),
-            DropdownButton<Producto>(
-              value: _selectedProduct,
-              hint: const Text("Seleccione un producto"),
-              items: widget.stockProducts
-                  .map(
-                    (p) => DropdownMenuItem(
-                      value: p,
-                      child: Text(p.nombre),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (p) {
-                setState(() {
-                  _selectedProduct = p;
-                });
-              },
+            const SizedBox(height: 15),
+            Center(
+              child: const Text(
+                "Oferta",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
             ),
+            const SizedBox(height: 20),
             TextField(
-              controller: _quantityController,
-              decoration: const InputDecoration(labelText: "Cantidad"),
-              keyboardType: TextInputType.number,
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: "Nombre de la oferta",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
-            ElevatedButton(
-              onPressed: () {
-                if (_selectedProduct != null &&
-                    _quantityController.text.isNotEmpty) {
-                  setState(() {
-                    _offerProducts.add(
-                      ProductOffer(
-                        product: _selectedProduct!,
-                        quantity: int.parse(_quantityController.text),
-                      ),
-                    );
-                    _selectedProduct = null;
-                    _quantityController.clear();
-                  });
-                }
-              },
-              child: const Text("Agregar Producto"),
+            const SizedBox(height: 20),
+
+            // Lista de productos ya agregados
+            ..._offerProducts.map(
+              (p) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(p.product.nombre),
+                subtitle: Text("Cantidad: ${p.quantity}"),
+                trailing: IconButton(
+                  icon: const Icon(
+                    Icons.remove_circle_outline,
+                    color: Colors.red,
+                  ),
+                  onPressed: () => setState(() => _offerProducts.remove(p)),
+                ),
+              ),
+            ),
+
+            // Selector de productos
+            Container(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  DropdownButtonFormField<Producto>(
+                    borderRadius: BorderRadius.circular(16),
+                    initialValue: _selectedProduct,
+                    decoration: const InputDecoration(labelText: "Seleccionar"),
+                    items: widget.stockProducts
+                        .map(
+                          (p) =>
+                              DropdownMenuItem(value: p, child: Text(p.nombre)),
+                        )
+                        .toList(),
+                    onChanged: (p) => setState(() => _selectedProduct = p),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _quantityController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              hint: Text("Cantidad"),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        ElevatedButton.icon(
+                          onPressed: _addProductToOffer,
+                          icon: const Icon(Icons.add),
+                          label: const Text("Añadir"),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 25),
+
+            // Campo de Precio con tu lógica de precio sugerido
+            TextField(
+              controller: _priceController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                labelText: 'Precio de Venta',
+                hint: Text(
+                  'Sugerido: \$${ofertaTemporal.precioSugerido.toStringAsFixed(2)}',
+                ),
+                prefixText: '\$ ',
+                filled: true,
+                fillColor: AppColors.primary.withValues(alpha: 0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 25),
+
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _saveOffer,
+                child: const Text(
+                  "Guardar Oferta",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text("Cancelar"),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (_nameController.text.isNotEmpty && _offerProducts.isNotEmpty) {
-              final newOffer = MenuOffer(
-                name: _nameController.text,
-                products: _offerProducts,
-              );
-              widget.onAddOffer(newOffer);
-              Navigator.pop(context);
-            }
-          },
-          child: const Text("Guardar Oferta"),
-        ),
-      ],
     );
+  }
+
+  void _addProductToOffer() {
+    final int? cant = int.tryParse(_quantityController.text);
+    if (_selectedProduct != null && cant != null && cant > 0) {
+      setState(() {
+        _offerProducts.add(
+          ProductOffer(product: _selectedProduct!, quantity: cant, price: 0.0),
+        );
+        _selectedProduct = null;
+        _quantityController.clear();
+      });
+    }
+  }
+
+  void _saveOffer() {
+    final double? precio = double.tryParse(
+      _priceController.text.replaceFirst(',', '.'),
+    );
+    if (_nameController.text.isNotEmpty &&
+        _offerProducts.isNotEmpty &&
+        precio != null) {
+      widget.onAddOffer(
+        MenuOffer(
+          name: _nameController.text,
+          products: List.from(_offerProducts),
+          price: precio,
+        ),
+      );
+      Navigator.pop(context);
+    }
   }
 }

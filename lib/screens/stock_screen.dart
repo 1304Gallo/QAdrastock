@@ -34,9 +34,11 @@ class _StockScreenState extends State<StockScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.background,
-        title: const Text(
-          "Control de Stock",
-          style: TextStyle(color: AppColors.primary),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text("Stock", style: TextStyle(color: AppColors.primary)),
+          ],
         ),
       ),
       body: _productos.isEmpty
@@ -83,8 +85,7 @@ class _StockScreenState extends State<StockScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
             child: FloatingActionButton(
-              onPressed: () => _mostrarDialogoAgregar(),
-              backgroundColor: AppColors.accent,
+              onPressed: () => _showCreateNewProductForm(),
               child: const Icon(Icons.add, color: Colors.white),
             ),
           ),
@@ -95,57 +96,112 @@ class _StockScreenState extends State<StockScreen> {
 
   // --- DIÁLOGOS Y VISTAS AUXILIARES ---
 
-  void _mostrarDialogoAgregar() {
+  void _showCreateNewProductForm() {
     final nombreController = TextEditingController();
     final cantidadController = TextEditingController();
     final precioController = TextEditingController();
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Nueva Entrada"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nombreController,
-              decoration: const InputDecoration(
-                labelText: "Nombre del Producto",
-              ),
-            ),
-            TextField(
-              controller: cantidadController,
-              decoration: const InputDecoration(labelText: "Cantidad"),
-              keyboardType: TextInputType.number,
-            ),
-            TextField(
-              controller: precioController,
-              decoration: const InputDecoration(labelText: "Precio"),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            ),
-          ],
+      isScrollControlled: true, // Permite que el contenido suba con el teclado
+      backgroundColor:
+          Colors.transparent, // Para que se vean los bordes redondeados
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancelar"),
+        padding: EdgeInsets.only(
+          top: 20,
+          left: 20,
+          right: 20,
+          // Evita que el teclado tape los campos
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  // margin: EdgeInsets.bottom(15),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              Center(
+                child: const Text(
+                  "Entrada en Stock",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: nombreController,
+                decoration: const InputDecoration(
+                  labelText: "Nombre del Producto",
+                  prefixIcon: Icon(Icons.inventory_2_outlined),
+                ),
+              ),
+              const SizedBox(height: 15),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: cantidadController,
+                      decoration: const InputDecoration(labelText: "Cantidad"),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: TextField(
+                      controller: precioController,
+                      decoration: const InputDecoration(
+                        labelText: "Precio Costo",
+                        prefixText: "\$ ",
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
+
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final int? cant = int.tryParse(cantidadController.text);
+                    final double? precio = double.tryParse(
+                      precioController.text.replaceFirst(',', '.'),
+                    );
+
+                    if (nombreController.text.isNotEmpty &&
+                        cant != null &&
+                        precio != null) {
+                      _agregarOActualizarProducto(
+                        nombreController.text,
+                        cant,
+                        precio,
+                      );
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: const Text("Guardar"),
+                ),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              if (nombreController.text.isNotEmpty &&
-                  cantidadController.text.isNotEmpty &&
-                  precioController.text.isNotEmpty) {
-                _agregarOActualizarProducto(
-                  nombreController.text,
-                  int.parse(cantidadController.text),
-                  double.parse(precioController.text),
-                );
-                Navigator.pop(context);
-              }
-            },
-            child: const Text("Guardar"),
-          ),
-        ],
+        ),
       ),
     );
   }
