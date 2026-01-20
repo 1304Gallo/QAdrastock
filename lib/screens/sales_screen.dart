@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qadrastock/core/app_color.dart';
 import 'package:qadrastock/models/menu_offer.models.dart';
+import 'package:qadrastock/models/sale_item.models.dart';
 
 import '../models/venta.models.dart';
 
@@ -64,10 +65,10 @@ class _VentasScreenState extends State<SalesScreen> {
                     ),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: sale.ofertas
+                      children: sale.items
                           .map(
-                            (o) => Text(
-                              o.name,
+                            (item) => Text(
+                              "${item.quantity} x ${item.offer.name}",
                               style: const TextStyle(color: AppColors.primary),
                             ),
                           )
@@ -145,8 +146,10 @@ class _VentasScreenState extends State<SalesScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) =>
-          AddSaleSheet(onAddSale: _addSale, availableOffers: widget.availableOffers),
+      builder: (context) => AddSaleSheet(
+        onAddSale: _addSale,
+        availableOffers: widget.availableOffers,
+      ),
     );
   }
 }
@@ -166,25 +169,43 @@ class AddSaleSheet extends StatefulWidget {
 }
 
 class _AddSaleSheetState extends State<AddSaleSheet> {
+  final _quantityController = TextEditingController();
   MenuOffer? _selectedOffer;
-  final List<MenuOffer> _saleOffers = [];
+  final List<SaleItem> _saleItems = [];
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    super.dispose();
+  }
 
   void _addOfferToSale() {
-    if (_selectedOffer != null) {
-      setState(() {
-        _saleOffers.add(_selectedOffer!);
-        _selectedOffer = null;
-      });
+    if (_selectedOffer != null && _quantityController.text.isNotEmpty) {
+      final quantity = int.tryParse(_quantityController.text);
+      if (quantity != null && quantity > 0) {
+        setState(() {
+          _saleItems.add(SaleItem(offer: _selectedOffer!, quantity: quantity));
+          _selectedOffer = null;
+          _quantityController.clear();
+        });
+      }
     }
   }
 
   void _saveSale() {
-    if (_saleOffers.isNotEmpty) {
+    if (_saleItems.isNotEmpty) {
+      final total = _saleItems.fold(
+        0.0,
+        (sum, item) => sum + (item.offer.price * item.quantity),
+      );
+      final totalItems = _saleItems.fold(0, (sum, item) => sum + item.quantity);
+
       final newSale = Venta(
         id: DateTime.now().millisecondsSinceEpoch,
         hora: DateTime.now(),
-        precio: _saleOffers.fold(0.0, (sum, item) => sum + item.price),
-        ofertas: List.from(_saleOffers),
+        precio: total,
+        items: List.from(_saleItems),
+        totalItems: totalItems,
       );
       widget.onAddSale(newSale);
       Navigator.pop(context);
@@ -193,7 +214,10 @@ class _AddSaleSheetState extends State<AddSaleSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final total = _saleOffers.fold(0.0, (sum, item) => sum + item.price);
+    final total = _saleItems.fold(
+      0.0,
+      (sum, item) => sum + (item.offer.price * item.quantity),
+    );
 
     return Container(
       decoration: const BoxDecoration(
@@ -211,17 +235,6 @@ class _AddSaleSheetState extends State<AddSaleSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-            const SizedBox(height: 15),
             const Center(
               child: Text(
                 "Nueva Venta",
@@ -233,34 +246,56 @@ class _AddSaleSheetState extends State<AddSaleSheet> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Expanded(
+                  flex: 3,
                   child: DropdownButtonFormField<MenuOffer>(
                     initialValue: _selectedOffer,
+                    isExpanded: true,
                     decoration: const InputDecoration(labelText: "Oferta"),
                     items: widget.availableOffers
                         .map(
-                          (o) =>
-                              DropdownMenuItem(value: o, child: Text(o.name)),
+                          (o) => DropdownMenuItem(
+                            value: o,
+                            child: Flexible(
+                              child: Text(
+                                o.name,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
                         )
                         .toList(),
                     onChanged: (o) => setState(() => _selectedOffer = o),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.add_circle),
-                  onPressed: _addOfferToSale,
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: _quantityController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: "Cantidad"),
+                  ),
+                ),
+                Expanded(
+                  flex: 1, // Give the IconButton a flex factor
+                  child: IconButton(
+                    icon: const Icon(Icons.add_circle),
+                    onPressed: _addOfferToSale,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            ..._saleOffers.map(
-              (o) => ListTile(
-                title: Text(o.name),
+            ..._saleItems.map(
+              (item) => ListTile(
+                title: Text(item.offer.name),
+                subtitle: Text("Cantidad: ${item.quantity}"),
                 trailing: IconButton(
                   icon: const Icon(
                     Icons.remove_circle_outline,
                     color: Colors.red,
                   ),
-                  onPressed: () => setState(() => _saleOffers.remove(o)),
+                  onPressed: () => setState(() => _saleItems.remove(item)),
                 ),
               ),
             ),
