@@ -1,5 +1,6 @@
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:qadrastock/models/menu_offer.models.dart';
 import 'package:qadrastock/screens/menu_screen.dart';
 import 'package:qadrastock/screens/sales_screen.dart';
 import 'package:qadrastock/screens/stock_screen.dart';
@@ -7,7 +8,16 @@ import 'package:qadrastock/screens/stock_screen.dart';
 import '../core/app_color.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final List<MenuOffer> offers;
+  final Function(MenuOffer) onAddOffer;
+  final Function(MenuOffer) onRemoveOffer;
+
+  const HomeScreen({
+    super.key,
+    required this.offers,
+    required this.onAddOffer,
+    required this.onRemoveOffer,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -16,14 +26,18 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    const Center(child: Text("Vista Inicio")),
-    const SalesScreen(),
-    const StockScreen(),
-    const MenuScreen(),
-  ];
   @override
   Widget build(BuildContext context) {
+    final List<Widget> pages = [
+      const Center(child: Text("Vista Inicio")),
+      SalesScreen(availableOffers: widget.offers),
+      const StockScreen(),
+      MenuScreen(
+        offers: widget.offers,
+        onAddOffer: widget.onAddOffer,
+        onRemoveOffer: widget.onRemoveOffer,
+      ),
+    ];
     final items = <Widget>[
       Icon(
         Icons.home,
@@ -59,8 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       backgroundColor: AppColors.background,
-      body: IndexedStack(index: _currentIndex, children: _pages),
-
+      body: IndexedStack(index: _currentIndex, children: pages),
       bottomNavigationBar: CurvedNavigationBar(
         index: _currentIndex,
         animationDuration: Duration(milliseconds: 300),

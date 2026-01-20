@@ -5,7 +5,16 @@ import 'package:qadrastock/models/menu_offer.models.dart';
 import 'package:qadrastock/services/stock_service.dart';
 
 class MenuScreen extends StatefulWidget {
-  const MenuScreen({super.key});
+  final List<MenuOffer> offers;
+  final Function(MenuOffer) onAddOffer;
+  final Function(MenuOffer) onRemoveOffer;
+
+  const MenuScreen({
+    super.key,
+    required this.offers,
+    required this.onAddOffer,
+    required this.onRemoveOffer,
+  });
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
@@ -13,19 +22,6 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> {
   final StockService _stockService = StockService();
-  final List<MenuOffer> _offers = [];
-
-  void _addOffer(MenuOffer offer) {
-    setState(() {
-      _offers.add(offer);
-    });
-  }
-
-  void _removeOffer(int index) {
-    setState(() {
-      _offers.removeAt(index);
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +40,7 @@ class _MenuScreenState extends State<MenuScreen> {
           ],
         ),
       ),
-      body: _offers.isEmpty
+      body: widget.offers.isEmpty
           ? const Center(
               child: Text(
                 "No hay ofertas en el menú",
@@ -52,9 +48,9 @@ class _MenuScreenState extends State<MenuScreen> {
               ),
             )
           : ListView.builder(
-              itemCount: _offers.length,
+              itemCount: widget.offers.length,
               itemBuilder: (context, index) {
-                final offer = _offers[index];
+                final offer = widget.offers[index];
                 return Card(
                   color: AppColors.backgroundComponent,
                   margin: const EdgeInsets.all(8),
@@ -112,7 +108,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                   ),
                                   TextButton(
                                     onPressed: () {
-                                      _removeOffer(index);
+                                      widget.onRemoveOffer(offer);
                                       Navigator.pop(context);
                                     },
                                     child: const Text(
@@ -154,7 +150,7 @@ class _MenuScreenState extends State<MenuScreen> {
       backgroundColor: Colors.transparent, // Para bordes redondeados
       builder: (context) => AddOfferSheet(
         stockProducts: _stockService.productos,
-        onAddOffer: _addOffer,
+        onAddOffer: widget.onAddOffer,
       ),
     );
   }
@@ -244,6 +240,80 @@ class _AddOfferSheetState extends State<AddOfferSheet> {
             ),
             const SizedBox(height: 20),
 
+            // Selector de productos
+            Container(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                // Cambiamos Column por Row
+                crossAxisAlignment: CrossAxisAlignment
+                    .end, // Alinea el botón con la base de los inputs
+                children: [
+                  // 1. EL SELECT (DROPDOWN)
+                  Expanded(
+                    flex: 3, // Ocupa 3 partes del espacio
+                    child: DropdownButtonFormField<Producto>(
+                      borderRadius: BorderRadius.circular(16),
+                      initialValue: _selectedProduct,
+                      decoration: const InputDecoration(
+                        labelText: "Producto",
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: widget.stockProducts
+                          .map(
+                            (p) => DropdownMenuItem(
+                              value: p,
+                              child: Text(p.nombre),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (p) => setState(() => _selectedProduct = p),
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  // 2. LA CANTIDAD
+                  Expanded(
+                    flex:
+                        2, // Ocupa 2 partes del espacio (más pequeño que el select)
+                    child: TextField(
+                      controller: _quantityController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: "Cant."),
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  // 3. EL BOTÓN
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        onPressed: _addProductToOffer,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 16,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.add,
+                        ), // Usamos solo icono para ahorrar espacio en la fila
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
             // Lista de productos ya agregados
             ..._offerProducts.map(
               (p) => ListTile(
@@ -257,49 +327,6 @@ class _AddOfferSheetState extends State<AddOfferSheet> {
                   ),
                   onPressed: () => setState(() => _offerProducts.remove(p)),
                 ),
-              ),
-            ),
-
-            // Selector de productos
-            Container(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  DropdownButtonFormField<Producto>(
-                    borderRadius: BorderRadius.circular(16),
-                    initialValue: _selectedProduct,
-                    decoration: const InputDecoration(labelText: "Seleccionar"),
-                    items: widget.stockProducts
-                        .map(
-                          (p) =>
-                              DropdownMenuItem(value: p, child: Text(p.nombre)),
-                        )
-                        .toList(),
-                    onChanged: (p) => setState(() => _selectedProduct = p),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _quantityController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              hint: Text("Cantidad"),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        ElevatedButton.icon(
-                          onPressed: _addProductToOffer,
-                          icon: const Icon(Icons.add),
-                          label: const Text("Añadir"),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ),
             ),
 
