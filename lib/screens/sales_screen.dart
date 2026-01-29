@@ -3,7 +3,7 @@ import 'package:qadrastock/core/app_color.dart';
 import 'package:qadrastock/models/menu_offer.models.dart';
 import 'package:qadrastock/models/sale_item.models.dart';
 
-import '../models/venta.models.dart';
+import '../models/sale.models.dart';
 
 class SalesScreen extends StatefulWidget {
   final List<MenuOffer> availableOffers;
@@ -15,9 +15,9 @@ class SalesScreen extends StatefulWidget {
 }
 
 class _VentasScreenState extends State<SalesScreen> {
-  final List<Venta> _salesList = [];
+  final List<Sale> _salesList = [];
 
-  void _addSale(Venta sale) {
+  void _addSale(Sale sale) {
     setState(() {
       _salesList.add(sale);
     });
@@ -92,33 +92,7 @@ class _VentasScreenState extends State<SalesScreen> {
                             color: AppColors.accent,
                           ),
                           onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text("Eliminar venta"),
-                                content: const Text(
-                                  "¿Está seguro que desea eliminar esta la venta?",
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text("Cancelar"),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      _removeSale(index);
-                                      Navigator.pop(context);
-                                    },
-                                    child: const Text(
-                                      "Eliminar",
-                                      style: TextStyle(
-                                        color: AppColors.secondary,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
+                            _showDeleteSaleDialog(context, index);
                           },
                         ),
                       ],
@@ -141,6 +115,32 @@ class _VentasScreenState extends State<SalesScreen> {
     );
   }
 
+  Future<dynamic> _showDeleteSaleDialog(BuildContext context, int index) {
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Eliminar venta"),
+        content: const Text("¿Está seguro que desea eliminar esta la venta?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancelar"),
+          ),
+          TextButton(
+            onPressed: () {
+              _removeSale(index);
+              Navigator.pop(context);
+            },
+            child: const Text(
+              "Eliminar",
+              style: TextStyle(color: AppColors.secondary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAddSaleSheet() {
     showModalBottomSheet(
       context: context,
@@ -155,7 +155,7 @@ class _VentasScreenState extends State<SalesScreen> {
 }
 
 class AddSaleSheet extends StatefulWidget {
-  final Function(Venta) onAddSale;
+  final Function(Sale) onAddSale;
   final List<MenuOffer> availableOffers;
 
   const AddSaleSheet({
@@ -200,12 +200,13 @@ class _AddSaleSheetState extends State<AddSaleSheet> {
       );
       final totalItems = _saleItems.fold(0, (sum, item) => sum + item.quantity);
 
-      final newSale = Venta(
+      final newSale = Sale(
         id: DateTime.now().millisecondsSinceEpoch,
         hora: DateTime.now(),
         precio: total,
         items: List.from(_saleItems),
         totalItems: totalItems,
+        metodoPago: _metodoSeleccionado,
       );
       widget.onAddSale(newSale);
       Navigator.pop(context);
