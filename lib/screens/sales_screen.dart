@@ -172,6 +172,7 @@ class _AddSaleSheetState extends State<AddSaleSheet> {
   final _quantityController = TextEditingController();
   MenuOffer? _selectedOffer;
   final List<SaleItem> _saleItems = [];
+  MetodoPago _metodoSeleccionado = MetodoPago.efectivo;
 
   @override
   void dispose() {
@@ -243,6 +244,26 @@ class _AddSaleSheetState extends State<AddSaleSheet> {
               ),
             ),
             const SizedBox(height: 20),
+            DropdownButtonFormField<MetodoPago>(
+              initialValue: _metodoSeleccionado,
+              decoration: const InputDecoration(labelText: "Método de pago"),
+              items: MetodoPago.values
+                  .map(
+                    (metodo) => DropdownMenuItem(
+                      value: metodo,
+                      child: Text(metodo.name),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _metodoSeleccionado = value;
+                  });
+                }
+              },
+            ),
+            const SizedBox(height: 20),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -256,11 +277,9 @@ class _AddSaleSheetState extends State<AddSaleSheet> {
                         .map(
                           (o) => DropdownMenuItem(
                             value: o,
-                            child: Flexible(
-                              child: Text(
-                                o.name,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                            child: Text(
+                              o.name,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         )
@@ -300,7 +319,7 @@ class _AddSaleSheetState extends State<AddSaleSheet> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+
             Text(
               "Total: \$${total.toStringAsFixed(2)}",
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
